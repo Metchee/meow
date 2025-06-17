@@ -2,52 +2,127 @@
 ** EPITECH PROJECT, 2025
 ** main
 ** File description:
-** zappy
+** zappy GUI main
 */
 
 #include "../lib/window.hpp"
 #include "../lib/Client_network.hpp"
-#include "../lib/Map.hpp"
+#include "../lib/GameState.hpp"
+#include "../lib/Renderer.hpp"
 #include <iostream>
 #include <string>
-#include <sstream>
 
-int main() {
-    printf("in\n");
-    std::string title = "Zappy GUI";
-    ClientNetwork client("127.0.0.1", 4242);
-    if (!client.connectToServer()) {
-        std::cerr << "Erreur de connexion au serveur\n";
-        return 1;
+class ZappyGUI {
+public:
+    ZappyGUI(const std::string& ip, int port)
+        : network(ip, port), window(1980, 920, "Zappy GUI"), renderer(window.getWindow()) {
     }
-    std::string welcome = client.receiveData();
-    std::cout << "Serveur : " << welcome << std::endl;
-    client.sendData("GUI\n");
-    Map map;
-    while (true) {
-        std::string data = client.receiveData();
-        if (data == "SERVER_SHUTDOWN\n") {
-            std::cout << "Server closed the connection." << std::endl;
-            break;
+
+    bool initialize() {
+        if (!network.connectToServer()) {
+            std::cerr << "Failed to connect to server" << std::endl;
+            return false;
         }
-        if (!data.empty()) {
-            printf("%s\n", data.c_str());
-            std::istringstream iss(data);
-            std::string line;
-            while (std::getline(iss, line)) {
-                if (line.rfind("msz", 0) == 0) {
-                    int w, h;
-                    std::istringstream(line.substr(4)) >> w >> h;
-                    map.setSize(w, h);
-                    std::cout << "Map size: " << w << "x" << h << std::endl;
-                } else if (line.rfind("bct", 0) == 0) {
-                    map.parseTileLine(line);
-                // map.printMap();
-                }
+        
+        std::string welcome = network.receiveData();
+        std::cout << "Server: " << welcome << std::endl;
+        network.sendData("GUI\n");
+        return true;
+    }
+
+    void run() {
+        if (!initialize()) {
+            return;
+        }
+        
+        std::cout << "GUI connected, starting main loop..." << std::endl;
+        
+        while (window.isOpen()) {
+            handleEvents();
+            updateFromServer();
+            render();
+        }
+    }
+
+private:
+    ClientNetwork network;
+    GameWindow window;
+    GameState gameState;
+    Renderer renderer;
+
+    void handleEvents() {
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed) {
+                window.close();
             }
         }
-        // GameWindow window(1920, 1080, title);
-        // window.run();
     }
+
+    void updateFromServer() {
+        std::string data = network.receiveData();
+        if (!data.empty()) {
+            std::cout << "GUI received: " << data << std::endl;
+            
+            if (data == "SERVER_SHUTDOWN\n") {
+                std::cout << "Server closed the connection." << std::endl;
+                window.close();
+                return;
+            }
+            gameState.processServerMessage(data);
+        }
+    }
+
+    void render() {
+        window.clear();
+        renderer.render(gameState);
+        window.display();
+    }
+};
+
+void print_usage(const char* program_name) {
+    std::cout << "USAGE: " << program_name << " -p port [-h machine]" << std::endl;
+    std::cout << "DESCRIPTION:" << std::endl;
+    std::cout << "\tport\t\tis the port number" << std::endl;
+    std::cout << "\tmachine\t\tis the name of the machine; localhost by default" << std::endl;
+}
+
+int main(int argc, char** argv) {
+    std::string ip = "localhost";
+    int port = 4242;
+    bool port_specified = false;
+    
+    for (int i = 1; i < argc - 1; i++) {
+        if (std::string(argv[i]) == "-p") {
+            port = std::atoi(argv[i + 1]);
+            port_specified = true;
+            i++;
+        } else if (std::string(argv[i]) == "-h") {
+            ip = argv[i + 1];
+            i++;
+        }
+    }
+    if (argc > 1) {
+        if (std::string(argv[1]) == "--help") {
+            print_usage(argv[0]);
+            return 0;
+        }
+        
+        if (!port_specified && argc > 1) {
+            std::cerr << "Error: Port is required when using arguments" << std::endl;
+            print_usage(argv[0]);
+            return 84;
+        }
+    }
+    std::cout << "Starting Zappy GUI..." << std::endl;
+    std::cout << "Connecting to " << ip << ":" << port << std::endl;
+    try {
+        ZappyGUI gui(ip, port);
+        gui.run();
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 84;
+    }
+
     return 0;
 }

@@ -1,6 +1,6 @@
 /*
 ** EPITECH PROJECT, 2025
-** Zappyloop
+** Window implementation
 ** File description:
 ** zappy
 */
@@ -10,21 +10,26 @@
 GameWindow::GameWindow(unsigned int width, unsigned int height, const std::string& title)
     : m_width(width), m_height(height), m_title(title)
 {
-    sf::String sfmlTitle(title);
-    m_window.create(sf::VideoMode({width, height}), sfmlTitle);
+    m_window.create(sf::VideoMode(width, height), title);
     m_window.setFramerateLimit(60);
 }
 
-void GameWindow::run()
-{
-    while(m_window.isOpen()) {
-        sf::Event event;
-        while(m_window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) {
-                m_window.close();
-            }
-        }
-        m_window.clear(sf::Color::Black);
-        m_window.display();
-    }
+bool GameWindow::pollEvent(sf::Event& event) {
+    return m_window.pollEvent(event);
+}
+
+bool GameWindow::isOpen() const {
+    return m_window.isOpen();
+}
+
+void GameWindow::close() {
+    m_window.close();
+}
+
+void GameWindow::clear(sf::Color color) {
+    m_window.clear(color);
+}
+
+void GameWindow::display() {
+    m_window.display();
 }

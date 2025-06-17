@@ -138,16 +138,76 @@ int handle_game_command(server_t *server, client_connection_t *client,
 {
     char *cmd = NULL;
     char *newline = NULL;
+    player_t *player = NULL;
 
     if (!server || !client || !command)
         return ERROR;
+    
+    player = client->client.player;
+    if (!player) {
+        server_send_to_client(client, "ko\n");
+        return ERROR;
+    }
+    
     cmd = strdup(command);
     if (!cmd)
         return ERROR;
     newline = strchr(cmd, '\n');
     if (newline)
         *newline = '\0';
-    server_send_to_client(client, "ok\n");
+
+    if (strcmp(cmd, "Forward") == 0 || strcmp(cmd, "forward") == 0) {
+        int new_x = player->x;
+        int new_y = player->y;
+        
+        switch (player->orientation) {
+            case 1: new_y = (new_y - 1 + server->map_data->height) % server->map_data->height; break;
+            case 2: new_x = (new_x + 1) % server->map_data->width; break;  
+            case 3: new_y = (new_y + 1) % server->map_data->height; break;
+            case 0: new_x = (new_x - 1 + server->map_data->width) % server->map_data->width; break;
+        }
+        
+        player->x = new_x;
+        player->y = new_y;
+        
+        server_send_to_client(client, "ok\n");
+        
+        server_notify_clients_by_type(server, GUI_CLIENT, 
+            "ppo %d %d %d %d\n", player->id, player->x, player->y, player->orientation);
+            
+    } else if (strcmp(cmd, "Right") == 0 || strcmp(cmd, "right") == 0) {
+        player->orientation = (player->orientation + 1) % 4;
+        
+        server_send_to_client(client, "ok\n");
+        
+        server_notify_clients_by_type(server, GUI_CLIENT, 
+            "ppo %d %d %d %d\n", player->id, player->x, player->y, player->orientation);
+            
+    } else if (strcmp(cmd, "Left") == 0 || strcmp(cmd, "left") == 0) {
+        player->orientation = (player->orientation + 3) % 4;
+        
+        server_send_to_client(client, "ok\n");
+        
+        server_notify_clients_by_type(server, GUI_CLIENT, 
+            "ppo %d %d %d %d\n", player->id, player->x, player->y, player->orientation);
+            
+    } else if (strcmp(cmd, "Look") == 0 || strcmp(cmd, "look") == 0) {
+        server_send_to_client(client, "[ ]\n");
+        
+    } else if (strcmp(cmd, "Inventory") == 0 || strcmp(cmd, "inventory") == 0) {
+        server_send_to_client(client, "[ food %d, linemate %d, deraumere %d, sibur %d, mendiane %d, phiras %d, thystame %d ]\n",
+            player->inventory[0],
+            player->inventory[1],
+            player->inventory[2],  
+            player->inventory[3],
+            player->inventory[4],
+            player->inventory[5],
+            player->inventory[6]);
+            
+    } else {
+        server_send_to_client(client, "ko\n");
+    }
+    
     free(cmd);
     return SUCCESS;
 }
