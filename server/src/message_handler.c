@@ -139,16 +139,88 @@ int handle_game_command(server_t *server, client_connection_t *client,
 {
     char *cmd = NULL;
     char *newline = NULL;
+    player_t *player = NULL;
 
     if (!server || !client || !command)
         return ERROR;
+    
+    player = client->client.player;
+    if (!player) {
+        server_send_to_client(client, "ko\n");
+        return ERROR;
+    }
+    
     cmd = strdup(command);
     if (!cmd)
         return ERROR;
     newline = strchr(cmd, '\n');
     if (newline)
         *newline = '\0';
-    server_send_to_client(client, "ok\n");
+
+    // Handle different AI commands
+    if (strcmp(cmd, "Forward") == 0 || strcmp(cmd, "forward") == 0) {
+        // Move player forward
+        int new_x = player->x;
+        int new_y = player->y;
+        
+        // Calculate new position based on orientation
+        switch (player->orientation) {
+            case 1: new_y = (new_y - 1 + server->map_data.height) % server->map_data.height; break; // North
+            case 2: new_x = (new_x + 1) % server->map_data.width; break; // East  
+            case 3: new_y = (new_y + 1) % server->map_data.height; break; // South
+            case 0: new_x = (new_x - 1 + server->map_data.width) % server->map_data.width; break; // West
+        }
+        
+        // Update player position
+        player->x = new_x;
+        player->y = new_y;
+        
+        server_send_to_client(client, "ok\n");
+        
+        // Notify GUI clients of the movement
+        server_notify_clients_by_type(server, GUI_CLIENT, 
+            "ppo %d %d %d %d\n", player->id, player->x, player->y, player->orientation);
+            
+    } else if (strcmp(cmd, "Right") == 0 || strcmp(cmd, "right") == 0) {
+        // Turn right
+        player->orientation = (player->orientation + 1) % 4;
+        
+        server_send_to_client(client, "ok\n");
+        
+        // Notify GUI clients of the rotation
+        server_notify_clients_by_type(server, GUI_CLIENT, 
+            "ppo %d %d %d %d\n", player->id, player->x, player->y, player->orientation);
+            
+    } else if (strcmp(cmd, "Left") == 0 || strcmp(cmd, "left") == 0) {
+        // Turn left
+        player->orientation = (player->orientation + 3) % 4; // +3 = -1 mod 4
+        
+        server_send_to_client(client, "ok\n");
+        
+        // Notify GUI clients of the rotation
+        server_notify_clients_by_type(server, GUI_CLIENT, 
+            "ppo %d %d %d %d\n", player->id, player->x, player->y, player->orientation);
+            
+    } else if (strcmp(cmd, "Look") == 0 || strcmp(cmd, "look") == 0) {
+        // Send look result (placeholder for now)
+        server_send_to_client(client, "[ ]\n");
+        
+    } else if (strcmp(cmd, "Inventory") == 0 || strcmp(cmd, "inventory") == 0) {
+        // Send inventory (placeholder for now)
+        server_send_to_client(client, "[ food %d, linemate %d, deraumere %d, sibur %d, mendiane %d, phiras %d, thystame %d ]\n",
+            player->inventory[FOOD],
+            player->inventory[LINEMATE], 
+            player->inventory[DERAUMERE],
+            player->inventory[SIBUR],
+            player->inventory[MENDIANE],
+            player->inventory[PHIRAS],
+            player->inventory[THYSTAME]);
+            
+    } else {
+        // Unknown command
+        server_send_to_client(client, "ko\n");
+    }
+    
     free(cmd);
     return SUCCESS;
 }
