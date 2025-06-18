@@ -17,8 +17,6 @@
 #include "../include/server_network.h"
 #include "../include/message_protocol.h"
 
-void notify_gui_player_disconnect(server_t *server, player_t const *player);
-
 static int accept_new_connection(server_t *server)
 {
     struct sockaddr_in client_addr;

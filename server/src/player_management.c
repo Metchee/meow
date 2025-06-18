@@ -18,7 +18,8 @@ bool init_player(server_t *server, client_t *client, const char *command)
     client->player = malloc(sizeof(player_t));
     if (!client->player)
         return false;
-    client->player->id = server->next_player_id++;
+    server->next_player_id++;
+    client->player->id = server->next_player_id;
     srand(time(NULL) + client->player->id);
     client->player->x = rand() % server->map_data->width;
     client->player->y = rand() % server->map_data->height;
@@ -48,7 +49,7 @@ void notify_gui_new_player(server_t *server, player_t const *player)
 {
     if (!server || !player)
         return;
-    server_notify_clients_by_type(server, GUI_CLIENT, 
+    server_notify_clients_by_type(server, GUI_CLIENT,
         "pnw %d %d %d %d %d %s\n",
         player->id,
         player->x,
@@ -62,7 +63,7 @@ void notify_gui_player_disconnect(server_t *server, player_t const *player)
 {
     if (!server || !player)
         return;
-    server_notify_clients_by_type(server, GUI_CLIENT, 
+    server_notify_clients_by_type(server, GUI_CLIENT,
         "pdi %d\n",
         player->id);
 }

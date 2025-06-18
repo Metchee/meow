@@ -19,4 +19,5 @@ void server_notify_all_clients(server_t *server, const char *message, ...);
 void server_notify_clients_by_type(server_t *server, client_type_t type,
     const char *message, ...);
 
+void notify_gui_player_disconnect(server_t *server, player_t const *player);
 #endif
