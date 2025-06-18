@@ -165,10 +165,10 @@ int handle_game_command(server_t *server, client_connection_t *client,
         
         // Calculate new position based on orientation
         switch (player->orientation) {
-            case 1: new_y = (new_y - 1 + server->map_data.height) % server->map_data.height; break; // North
-            case 2: new_x = (new_x + 1) % server->map_data.width; break; // East  
-            case 3: new_y = (new_y + 1) % server->map_data.height; break; // South
-            case 0: new_x = (new_x - 1 + server->map_data.width) % server->map_data.width; break; // West
+            case 1: new_y = (new_y - 1 + server->map_data->height) % server->map_data->height; break; // North
+            case 2: new_x = (new_x + 1) % server->map_data->width; break; // East  
+            case 3: new_y = (new_y + 1) % server->map_data->height; break; // South
+            case 4: new_x = (new_x - 1 + server->map_data->width) % server->map_data->width; break; // West
         }
         
         // Update player position
@@ -183,7 +183,7 @@ int handle_game_command(server_t *server, client_connection_t *client,
             
     } else if (strcmp(cmd, "Right") == 0 || strcmp(cmd, "right") == 0) {
         // Turn right
-        player->orientation = (player->orientation + 1) % 4;
+        player->orientation = (player->orientation % 4) + 1;
         
         server_send_to_client(client, "ok\n");
         
@@ -193,7 +193,7 @@ int handle_game_command(server_t *server, client_connection_t *client,
             
     } else if (strcmp(cmd, "Left") == 0 || strcmp(cmd, "left") == 0) {
         // Turn left
-        player->orientation = (player->orientation + 3) % 4; // +3 = -1 mod 4
+        player->orientation = ((player->orientation - 2 + 4) % 4) + 1; // -1 with wrap around
         
         server_send_to_client(client, "ok\n");
         

@@ -28,7 +28,7 @@ static void initialize_tile(tile_t *tile)
     int i = 0;
 
     for (i = 0; i < 7; i++) {
-        tile->resources[i] = 0;
+        tile->resources[i] = 5;
     }
     tile->players = NULL;
     tile->eggs = NULL;
